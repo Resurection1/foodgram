@@ -5,7 +5,6 @@ from rest_framework.response import Response
 
 from api.pagination import CastomPagePagination
 from api.permissins import (
-
     IsUserorAdmin,
 )
 from users.serializers import (
@@ -14,13 +13,9 @@ from users.serializers import (
     CustomUserCreateSerializer,
     PasswordSerializer
 )
-from users.models import MyUser
+from users.models import MyUser, Subscription
 from api.constants import INCORRECT_PASSWORD
-
-
-class FavoriteViewSet(viewsets.ModelViewSet):
-    queryset = MyUser.objects.all()
-    serializer_class = UserSerializer
+from api.serializers import SubscriptionSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -119,3 +114,62 @@ class UserViewSet(viewsets.ModelViewSet):
             user.avatar = None
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=("get",),
+        permission_classes=(permissions.IsAuthenticated,),
+    )
+    def subscriptions(self, request):
+        """Список авторов, на которых подписан пользователь."""
+        user = self.request.user
+        queryset = user.follower.all()
+        pages = self.paginate_queryset(queryset)
+        serializer = SubscriptionSerializer(
+            pages, many=True, context={"request": request}
+        )
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=True, methods=("post", "delete"))
+    def subscribe(self, request, id=None):
+        user = self.request.user
+        author = get_object_or_404(MyUser, pk=id)
+
+        if user == author:
+            return Response(
+                'Нельзя подписаться самому на себя)',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        elif not user.is_authenticated:
+            return Response(
+                'Необходимо зарегистрироваться',
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if self.request.method == "POST":
+            if Subscription.objects.filter(user=user, author=author).exists():
+                return Response(
+                    {"errors": "Subscription already exists!"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            subscription = Subscription.objects.create(
+                author=author, user=user)
+            serializer = SubscriptionSerializer(
+                subscription, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        elif self.request.method == "DELETE":
+            if not Subscription.objects.filter(user=user, author=author).exists():
+                return Response(
+                    {"errors": "You are not subscribed!"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            subscription = get_object_or_404(
+                Subscription, user=user, author=author)
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

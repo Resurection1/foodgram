@@ -4,7 +4,8 @@ import base64
 from django.core.files.base import ContentFile
 from django.contrib.auth import authenticate, password_validation
 from djoser.serializers import UserCreateSerializer
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 from api.constants import (
     INVALID_CREDENTIALS_ERROR,
@@ -13,7 +14,6 @@ from api.constants import (
 )
 from users.models import MyUser, Subscription
 from api.models import Recipes
-from api.serializers import RecipesSerializer
 
 
 class Base64ImageField(serializers.ImageField):
@@ -131,24 +131,21 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def get_recipes(self, obj):
-        request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')
-        recipes = Recipes.objects.filter(author=obj)
-        if limit:
-            recipes = recipes[:int(limit)]
-        return RecipesSerializer(recipes, many=True).data
-
-    def get_recipes_count(self, obj):
-        return Recipes.objects.filter(author=obj).count()
-
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Subscription.objects.filter(
-                user=request.user, subscribed_to=obj
+                user=request.user, author=obj
             ).exists()
         return False
+    
+    def get_recipes(self, obj):
+        """Получение списка рецептов автора."""
+        from api.serializers import ShortRecipeSerializer
+        author_recipes = obj.recipes.all()
+        serializer = ShortRecipeSerializer(author_recipes, many=True)
+
+        return serializer.data
 
 
 class PasswordSerializer(serializers.Serializer):

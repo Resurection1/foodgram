@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.contrib.auth import get_user_model
 from django.db import models
 
@@ -6,8 +7,7 @@ from api.constants import (
     MAX_LENGTH_UNIT_NAME,
     INGREDIENTS_MAX_LENGTH_NAME,
 )
-
-Author = get_user_model()
+from users.models import MyUser
 
 
 class Tags(models.Model):
@@ -54,6 +54,13 @@ class Ingredients(models.Model):
         verbose_name = "Ингридиент"
         verbose_name_plural = "Ингридиенты"
 
+        constraints = (
+            models.UniqueConstraint(
+                fields=("name", "measurement_unit"),
+                name="unique_ingredient",
+            ),
+        )
+
     def __str__(self):
         return self.name
 
@@ -62,7 +69,8 @@ class Recipes(models.Model):
     """Класс для модели рецепты."""
 
     author = models.ForeignKey(
-        Author, related_name='recipes',
+        MyUser,
+        related_name='recipes',
         on_delete=models.CASCADE,
         verbose_name='Автор',
     )
@@ -71,7 +79,7 @@ class Recipes(models.Model):
         verbose_name='Название',
     )
     image = models.ImageField(
-        upload_to='recipes/images/',
+        upload_to='recipes/',
         null=True,
         default=None,
         verbose_name='Фотография',
@@ -86,15 +94,14 @@ class Recipes(models.Model):
     ingredients = models.ManyToManyField(
         Ingredients,
         through='IngredientsRecipes',
+        related_name='recipes',
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время готовки'
     )
-    is_favorited = models.BooleanField(
-        default=False,
-    )
-    is_in_shopping_cart = models.BooleanField(
-        default=False,
+    pub_date = models.DateTimeField(
+        verbose_name='Дата публикации рецепта',
+        auto_now_add=True,
     )
 
     class Meta:
@@ -108,7 +115,7 @@ class Recipes(models.Model):
 class IngredientsRecipes(models.Model):
     """Промежуточная модель для связи ингредиентов и рецептов."""
 
-    recipe = models.ForeignKey(
+    recipes = models.ForeignKey(
         Recipes,
         on_delete=models.CASCADE,
         verbose_name='Рецепт'
@@ -120,50 +127,74 @@ class IngredientsRecipes(models.Model):
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name='Количество',
+        validators=(
+            MinValueValidator(
+                1, "Не может быть менее 1"
+            ),
+        ),
     )
 
     class Meta:
-        verbose_name = "Ингредиент в рецепте"
-        verbose_name_plural = "Ингредиенты в рецептах"
-        unique_together = ('recipe', 'ingredient')
+        verbose_name = 'Ингредиент в рецепте'
+        verbose_name_plural = 'Ингредиенты в рецептах'
+        unique_together = ('recipes', 'ingredient')
 
     def __str__(self):
-        return f"{self.ingredient.title} в {self.recipe.name} - {self.amount}"
+        return f"{self.ingredient.name} в {self.recipes.name} - {self.amount}"
 
 
 class ShoppingCart(models.Model):
     """Класс для модели покупок."""
 
     author = models.ForeignKey(
-        Author,
+        MyUser,
         on_delete=models.CASCADE,
-        related_name='shopping_cart',
+        related_name='shopping_list',
         verbose_name='Пользователь'
     )
-    recipes = models.ManyToManyField(
+    recipes = models.ForeignKey(
         Recipes,
-        related_name='in_shopping_cart',
+        on_delete=models.CASCADE,
+        related_name='shopping_list',
         verbose_name='Рецепты'
     )
 
     class Meta:
-        verbose_name = "Корзина покупок"
-        verbose_name_plural = "Корзины покупок"
+        verbose_name = 'Корзина покупок'
+        verbose_name_plural = 'Корзины покупок'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('author', 'recipes'), name='shopping_list_recipe'
+            ),
+        )
 
     def __str__(self):
-        return f"Корзина покупок {self.user.username}"
+        return f'Корзина покупок {self.author.username}'
 
-    def get_ingredient_summary(self):
-        """
-        Возвращает суммированный список ингредиентов для рецептов в корзине
-        """
-        ingredients_summary = {}
-        for recipe in self.recipes.all():
-            for ingredient in recipe.ingredients.all():
-                amount = IngredientsRecipes.objects.get(
-                    recipe=recipe, ingredient=ingredient).amount
-                if ingredient.title in ingredients_summary:
-                    ingredients_summary[ingredient.title] += amount
-                else:
-                    ingredients_summary[ingredient.title] = amount
-        return ingredients_summary
+
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        MyUser,
+        on_delete=models.CASCADE,
+        related_name='favorite',
+        verbose_name='Пользователь',
+    )
+    recipes = models.ForeignKey(
+        Recipes,
+        on_delete=models.CASCADE,
+        related_name='favorite',
+        verbose_name="Рецепт",
+    )
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранное'
+
+        constraints = (
+            models.UniqueConstraint(
+                fields=('user', 'recipes'), name='unique_favorite_recipe'
+            ),
+        )
+
+    def __str__(self):
+        return f'Рецепт {self.recipes} в избранном у пользователя {self.user}'

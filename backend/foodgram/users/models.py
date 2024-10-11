@@ -53,11 +53,6 @@ class MyUser(AbstractUser):
         default=None,
         verbose_name='Фотография',
     )
-    is_subscribed = models.ManyToManyField(
-        'Subscription',
-        related_name='subscribers',
-        blank=True,
-    )
 
     @property
     def is_admin(self):
@@ -65,18 +60,25 @@ class MyUser(AbstractUser):
 
 
 class Subscription(models.Model):
-    """Модель подписки, которая определяет отношения между пользователями."""
+    """Модель подписки."""
 
     user = models.ForeignKey(
         MyUser,
-        related_name='subscriptions',
-        on_delete=models.CASCADE
+        related_name='follower',
+        on_delete=models.CASCADE,
+        verbose_name="Подписчик",
     )
-    subscribed_to = models.ForeignKey(
+    author = models.ForeignKey(
         MyUser,
         related_name='subscribers',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name="Автор",
     )
 
     class Meta:
-        unique_together = ('user', 'subscribed_to')
+        verbose_name = 'Подписчик'
+        verbose_name_plural = 'Подписчики'
+        unique_together = ('user', 'author')
+
+    def __str__(self):
+        return f"{self.user} подписан на {self.author}"
