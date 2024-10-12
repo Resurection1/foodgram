@@ -1,5 +1,5 @@
 from django_filters import ModelMultipleChoiceFilter
-from django_filters.rest_framework import filters
+from django_filters import rest_framework as filters
 
 from api.models import Recipes, Tags
 from users.models import MyUser
