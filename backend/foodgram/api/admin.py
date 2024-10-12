@@ -1,12 +1,12 @@
 from django.contrib import admin
 
 from api.models import (
-    Tags,
-    Ingredients,
-    Recipes,
-    IngredientsRecipes,
     Favorite,
-    ShoppingCart
+    Ingredients,
+    IngredientsRecipes,
+    Recipes,
+    ShoppingCart,
+    Tags,
 )
 
 
@@ -94,6 +94,7 @@ class FavoriteAdmin(admin.ModelAdmin):
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
     """Класс настройки раздела корзина."""
+
     list_display = (
         'author',
         'recipes'

@@ -1,13 +1,14 @@
 from django.core.validators import MinValueValidator
-from django.contrib.auth import get_user_model
 from django.db import models
 
 from api.constants import (
+    INGREDIENTS_MAX_LENGTH_NAME,
     MAX_LENGTH_NAME,
     MAX_LENGTH_UNIT_NAME,
-    INGREDIENTS_MAX_LENGTH_NAME,
 )
-from users.models import MyUser
+from users.models import (
+    MyUser,
+)
 
 
 class Tags(models.Model):
@@ -95,6 +96,7 @@ class Recipes(models.Model):
         Ingredients,
         through='IngredientsRecipes',
         related_name='recipes',
+        verbose_name='Ингридиенты'
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время готовки'

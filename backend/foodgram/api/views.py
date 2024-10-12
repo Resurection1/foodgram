@@ -1,17 +1,21 @@
-from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.response import Response
 from django.db.models import Sum
 from django.http import HttpResponse
-
-
-
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from api.filters import RecipeFilter
-from api.permissins import IsUserorAdmin, IsAdminAuthorOrReadOnly
+from api.models import (
+    Ingredients,
+    Recipes,
+    ShoppingCart,
+    Tags,
+    Favorite
+)
+from api.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
 from api.pagination import CastomPagePagination
-from api.models import Ingredients, Recipes, ShoppingCart, Tags, Favorite
 from api.serializers import (
     IngredientsSerializer,
     TagsSerializer,
@@ -23,8 +27,9 @@ from api.serializers import (
 )
 
 
-
 class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
+    """Вьюсет для ингридиентов."""
+
     queryset = Ingredients.objects.all()
     serializer_class = IngredientsSerializer
     permission_classes = (IsUserorAdmin,)
@@ -39,6 +44,7 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
+    """Вьюсет для рецептов."""
     queryset = Recipes.objects.all()
     permission_classes = (IsAdminAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -105,7 +111,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if request.method == 'POST':
             if ShoppingCart.objects.filter(
-                author=user, 
+                author=user,
                 recipes=recipes
             ).exists():
                 return Response({'errors': 'Рецепт уже добавлен!'},
@@ -177,6 +183,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
 
 class TagsViewSet(viewsets.ModelViewSet):
+    """Вьюсет для тегов."""
     queryset = Tags.objects.all()
     serializer_class = TagsSerializer
     permission_classes = (IsUserorAdmin,)

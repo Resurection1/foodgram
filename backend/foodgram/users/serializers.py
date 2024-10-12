@@ -4,8 +4,7 @@ import base64
 from django.core.files.base import ContentFile
 from django.contrib.auth import authenticate, password_validation
 from djoser.serializers import UserCreateSerializer
-from rest_framework import serializers, status
-from rest_framework.response import Response
+from rest_framework import serializers
 
 from api.constants import (
     INVALID_CREDENTIALS_ERROR,
@@ -13,10 +12,11 @@ from api.constants import (
     NAME_ME,
 )
 from users.models import MyUser, Subscription
-from api.models import Recipes
 
 
 class Base64ImageField(serializers.ImageField):
+    """Класс для аватара в base64"""
+
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
@@ -27,6 +27,7 @@ class Base64ImageField(serializers.ImageField):
 
 
 class AvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для аватара."""
     avatar = Base64ImageField()
 
     class Meta:
@@ -138,7 +139,7 @@ class UserSerializer(serializers.ModelSerializer):
                 user=request.user, author=obj
             ).exists()
         return False
-    
+
     def get_recipes(self, obj):
         """Получение списка рецептов автора."""
         from api.serializers import ShortRecipeSerializer
@@ -149,6 +150,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class PasswordSerializer(serializers.Serializer):
+    """Сериализатор для смены пароля."""
     current_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
 

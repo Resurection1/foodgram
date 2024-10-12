@@ -3,19 +3,19 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.constants import INCORRECT_PASSWORD
 from api.pagination import CastomPagePagination
 from api.permissins import (
     IsUserorAdmin,
 )
+from api.serializers import SubscriptionSerializer
+from users.models import MyUser, Subscription
 from users.serializers import (
     AvatarSerializer,
-    UserSerializer,
     CustomUserCreateSerializer,
-    PasswordSerializer
+    PasswordSerializer,
+    UserSerializer,
 )
-from users.models import MyUser, Subscription
-from api.constants import INCORRECT_PASSWORD
-from api.serializers import SubscriptionSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -89,7 +89,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'PUT':
             if 'avatar' not in request.data:
                 return Response(
-                    {'error': 'The avatar field is required.'},
+                    "Обязательное поле аватара",
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -122,6 +122,7 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def subscriptions(self, request):
         """Список авторов, на которых подписан пользователь."""
+
         user = self.request.user
         queryset = user.follower.all()
         pages = self.paginate_queryset(queryset)
@@ -150,7 +151,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.request.method == "POST":
             if Subscription.objects.filter(user=user, author=author).exists():
                 return Response(
-                    {"errors": "Subscription already exists!"},
+                    "Подписка уже существует.",
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -161,9 +162,10 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif self.request.method == "DELETE":
-            if not Subscription.objects.filter(user=user, author=author).exists():
+            if not Subscription.objects.filter(
+                    user=user, author=author).exists():
                 return Response(
-                    {"errors": "You are not subscribed!"},
+                    "Вы не подписаны",
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 

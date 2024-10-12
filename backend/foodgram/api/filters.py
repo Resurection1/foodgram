@@ -1,11 +1,13 @@
-from django_filters import rest_framework as filters
 from django_filters import ModelMultipleChoiceFilter
+from django_filters.rest_framework import filters
 
 from api.models import Recipes, Tags
 from users.models import MyUser
 
 
 class RecipeFilter(filters.FilterSet):
+    """Класс с фильтрами для рецептов"""
+
     is_favorited = filters.BooleanFilter(method="favorited_method")
     is_in_shopping_cart = filters.BooleanFilter(
         method="in_shopping_cart_method")

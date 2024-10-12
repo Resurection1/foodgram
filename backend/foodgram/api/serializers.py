@@ -1,20 +1,19 @@
 
-from rest_framework import exceptions, serializers
+from drf_extra_fields.fields import Base64ImageField
 from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
-from drf_extra_fields.fields import Base64ImageField
-
+from rest_framework import exceptions, serializers
 
 from api.models import (
+    Favorite,
     Ingredients,
-    Recipes,
-    Tags,
     IngredientsRecipes,
+    Recipes,
     ShoppingCart,
-    Favorite
+    Tags,
 )
-from users.models import Subscription
 from api.pagination import CastomPagePagination
+from users.models import Subscription
 from users.serializers import UserSerializer
 
 
@@ -56,6 +55,8 @@ class IngredientsSerializer(serializers.ModelSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
+    """Класс для рецептов, но укороченный"""
+
     class Meta:
         model = Recipes
         fields = ("id", "name", "image", "cooking_time")
@@ -154,6 +155,8 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
 
     def get_ingredients(self, obj):
+        """Получение ингридиентов."""
+
         ingredients = IngredientsRecipes.objects.filter(recipes=obj)
         serializer = RecipeIngredientsSerializer(ingredients, many=True)
 
@@ -161,10 +164,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         """Добавлен ли рецепт в избранное."""
+
         user_id = self.context.get('request').user.id
         return Favorite.objects.filter(user=user_id, recipes=obj.id).exists()
 
     def get_is_in_shopping_cart(self, obj):
+        """Получение корзины покупок."""
+
         user = self.context.get('request').user
         if not user.is_anonymous:
             return ShoppingCart.objects.filter(recipes=obj).exists()
@@ -178,6 +184,8 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
+    """Класс обновления и создания рецептов."""
+
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tags.objects.all(), many=True
     )
@@ -221,6 +229,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        """Создание."""
         author = self.context.get("request").user
         tags = validated_data.pop("tags")
         ingredients = validated_data.pop("ingredients")
@@ -241,6 +250,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return recipes
 
     def update(self, instance, validated_data):
+        """Обновление."""
 
         if "ingredients" not in validated_data:
             raise exceptions.ValidationError('Добавьте ингридиенты')

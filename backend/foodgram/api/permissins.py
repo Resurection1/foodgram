@@ -2,6 +2,7 @@ from rest_framework import permissions
 
 
 class IsUserorAdmin(permissions.BasePermission):
+    """Класс доступа для обычного пользователя"""
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
@@ -9,8 +10,9 @@ class IsUserorAdmin(permissions.BasePermission):
         return (obj.id == request.user
                 or request.user.is_superuser)
 
+
 class IsAdminAuthorOrReadOnly(permissions.IsAuthenticatedOrReadOnly):
-    message = "Доступ запрещен!"
+    """Класс доступа для автора"""
 
     def has_object_permission(self, request, view, obj):
         return (
