@@ -1,7 +1,10 @@
+import os
+
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from dotenv import load_dotenv
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -25,6 +28,9 @@ from api.serializers import (
     IngredientsRecipes,
     ShoppingCartSerializer,
 )
+
+
+load_dotenv()
 
 
 class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
@@ -178,7 +184,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Получение короткой ссылки на рецепт."""
 
         recipes = get_object_or_404(Recipes, pk=pk)
-        short_link = f"https://foodgram.example.org/s/{recipes.id}"
+        short_link = f"{os.getenv('DOMAIN')}recipes/{recipes.id}"
         return Response({"short-link": short_link}, status=status.HTTP_200_OK)
 
 
