@@ -13,7 +13,8 @@ from users.views import (
 router = routers.DefaultRouter()
 router.register(r'tags', TagsViewSet, basename='tags')
 router.register(r'recipes', RecipesViewSet, basename='recipes')
-router.register(r'ingredients', IngredientsViewSet, basename='ingredients')
+router.register(
+    r'ingredients', IngredientsViewSet, basename='ingredients')
 router.register(r'users', UserViewSet, basename='users')
 
 
