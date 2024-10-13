@@ -1,4 +1,4 @@
-![status workflow](https://github.com/Resurection1/Foodgram_Workflow/actions/workflows/main.yml/badge.svg)
+[![Main Foodgram workflow](https://github.com/Resurection1/foodgram/actions/workflows/main.yaml/badge.svg)](https://github.com/Resurection1/foodgram/actions/workflows/main.yaml)
 
 `Python` `Django` `Django Rest Framework` `Docker` `Gunicorn` `NGINX` `PostgreSQL` `Yandex Cloud` `Continuous Integration` `Continuous Deployment`
 
