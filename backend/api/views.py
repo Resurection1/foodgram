@@ -184,7 +184,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         """Получение короткой ссылки на рецепт."""
 
         recipes = get_object_or_404(Recipes, pk=pk)
-        short_link = f"{os.getenv('DOMAIN')}recipes/{recipes.id}"
+        short_link = f"{os.getenv('DOMAIN')}/recipes/{recipes.id}"
         return Response({"short-link": short_link}, status=status.HTTP_200_OK)
 
 
