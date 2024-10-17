@@ -39,7 +39,7 @@ scp docker-compose.yml nginx.conf username@IP:/home/username/
     USER                           # имя пользователя от сервера
     SSH_KEY                        # содержимое приватного SSH-ключа (cat ~/.ssh/id_rsa)
     SSH_PASSPHRASE                 # пароль для SSH-ключа
-    
+
     TELEGRAM_TO                    # ID вашего телеграм-аккаунта (можно узнать у @userinfobot, команда /start)
     TELEGRAM_TOKEN                 # токен вашего бота (получить токен можно у @BotFather, команда /token, имя бота)
 ```
@@ -54,11 +54,12 @@ sudo docker compose exec backend python manage.py migrate
 ```
 **_Собрать статику:_**
 ```
-sudo docker compose exec backend python manage.py collectstatic --noinput
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
+sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
 ```
 **_Наполнить базу данных содержимым из файла ingredients.json:_**
 ```
-sudo docker compose exec backend python manage.py formatted_ingredients.json
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py loaddata formatted_ingredients.json
 ```
 **_Создать суперпользователя:_**
 ```
