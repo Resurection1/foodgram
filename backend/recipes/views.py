@@ -1,7 +1,6 @@
 import os
 
 from django.db.models import Sum
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from dotenv import load_dotenv
@@ -9,23 +8,24 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.filters import RecipeFilter
-from api.models import (
+from recipes.download_shopping_cart import shopping_list_file
+from recipes.filters import RecipeFilter
+from recipes.models import (
     Ingredients,
+    IngredientsRecipes,
     Recipes,
     ShoppingCart,
     Tags,
-    Favorite
+    Favorite,
 )
-from api.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
-from api.pagination import CastomPagePagination
-from api.serializers import (
+from recipes.pagination import CastomPagePagination
+from recipes.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
+from recipes.serializers import (
     IngredientsSerializer,
     TagsSerializer,
     RecipeSerializer,
     RecipeCreateUpdateSerializer,
     ShortRecipeSerializer,
-    IngredientsRecipes,
     ShoppingCartSerializer,
 )
 
@@ -51,6 +51,7 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
 class RecipesViewSet(viewsets.ModelViewSet):
     """Вьюсет для рецептов."""
+
     queryset = Recipes.objects.all()
     permission_classes = (IsAdminAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -58,18 +59,17 @@ class RecipesViewSet(viewsets.ModelViewSet):
     pagination_class = CastomPagePagination
 
     def get_serializer_class(self):
-        if self.action in ("create", "partial_update"):
+        if self.action in ('create', 'partial_update'):
             return RecipeCreateUpdateSerializer
         return RecipeSerializer
 
     def add(self, model, user, pk, name):
         """Добавление рецепта."""
-
         recipes = get_object_or_404(Recipes, pk=pk)
         relation = model.objects.filter(user=user, recipes=recipes)
         if relation.exists():
             return Response(
-                {"errors": f"Нельзя повторно добавить рецепт в {name}"},
+                f'Нельзя повторно добавить рецепт в {name}',
                 status=status.HTTP_400_BAD_REQUEST,
             )
         model.objects.create(user=user, recipes=recipes)
@@ -78,12 +78,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     def delete_relation(self, model, user, pk, name):
         """Удаление рецепта из списка пользователя."""
-
         recipes = get_object_or_404(Recipes, pk=pk)
         relation = model.objects.filter(user=user, recipes=recipes)
         if not relation.exists():
             return Response(
-                {"errors": f"Нельзя повторно удалить рецепт из {name}"},
+                f'Нельзя повторно удалить рецепт из {name}',
                 status=status.HTTP_400_BAD_REQUEST,
             )
         relation.delete()
@@ -91,28 +90,26 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=("post", "delete"),
-        url_path="favorite",
-        url_name="favorite",
+        methods=('post', 'delete'),
+        url_path='favorite',
+        url_name='favorite',
     )
     def favorite(self, request, pk=None):
         """Добавление и удаление рецептов из избранного."""
-
         user = request.user
-        if request.method == "POST":
-            name = "избранное"
+        if request.method == 'POST':
+            name = 'избранное'
             return self.add(Favorite, user, pk, name)
-        if request.method == "DELETE":
-            name = "избранного"
+        if request.method == 'DELETE':
+            name = 'избранного'
             return self.delete_relation(Favorite, user, pk, name)
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(detail=True,
-            methods=['post', 'delete'],
+            methods=('post', 'delete'),
             permission_classes=[permissions.IsAuthenticated])
     def shopping_cart(self, request, **kwargs):
         """Добавить или удалить  рецепт из списка покупок у пользоватля."""
-
         recipes = get_object_or_404(Recipes, id=self.kwargs.get('pk'))
         user = self.request.user
         if request.method == 'POST':
@@ -120,8 +117,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 author=user,
                 recipes=recipes
             ).exists():
-                return Response({'errors': 'Рецепт уже добавлен!'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    'Рецепт уже добавлен!',
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             serializer = ShoppingCartSerializer(data=request.data)
             if serializer.is_valid(raise_exception=True):
@@ -136,64 +135,52 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 shopping_cart_item = ShoppingCart.objects.get(
                     author=user, recipes=recipes)
                 shopping_cart_item.delete()
-                return Response('Рецепт успешно удалён из списка покупок.',
-                                status=status.HTTP_204_NO_CONTENT)
+                return Response(
+                    'Рецепт успешно удалён из списка покупок.',
+                    status=status.HTTP_204_NO_CONTENT
+                )
             except ShoppingCart.DoesNotExist:
-                return Response({'errors': 'Рецепт не найден в корзине.'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    'Рецепт не найден в корзине.',
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
     @action(detail=False,
-            methods=['get'],
+            methods=('get',),
             permission_classes=[permissions.IsAuthenticated])
     def download_shopping_cart(self, request):
         """Скачать список покупок."""
-
-        shopping_cart = ShoppingCart.objects.filter(author=self.request.user)
-        recipes = [item.recipes.id for item in shopping_cart]
-        buy = (
-            IngredientsRecipes.objects.filter(recipes__in=recipes)
-            .values("ingredient")
-            .annotate(amount=Sum("amount"))
+        ingredients = IngredientsRecipes.objects.filter(
+            recipes__in=ShoppingCart.objects.filter(
+                author=self.request.user).values('recipes')
+        ).values(
+            'ingredient__name', 'ingredient__measurement_unit'
+        ).annotate(
+            total_amount=Sum('amount')
         )
-        purchased = [
-            "Список покупок:",
-        ]
-        for item in buy:
-            ingredient = Ingredients.objects.get(pk=item["ingredient"])
-            amount = item["amount"]
-            purchased.append(
-                f"{ingredient.name}: {amount}, "
-                f"{ingredient.measurement_unit}"
-            )
-        purchased_in_file = "\n".join(purchased)
 
-        response = HttpResponse(purchased_in_file, content_type="text/plain")
-        response[
-            "Content-Disposition"
-        ] = "attachment; filename=shopping-list.txt"
-
-        return response
+        return shopping_list_file(ingredients)
 
     @action(
         detail=True,
-        methods=("get",),
-        url_path="get-link",
-        url_name="get_link",
+        methods=('get',),
+        url_path='get-link',
+        url_name='get_link',
     )
     def get_link(self, request, pk=None):
         """Получение короткой ссылки на рецепт."""
-
         recipes = get_object_or_404(Recipes, pk=pk)
-        short_link = f"{os.getenv('DOMAIN')}/recipes/{recipes.id}"
-        return Response({"short-link": short_link}, status=status.HTTP_200_OK)
+        short_link = f'{os.getenv("DOMAIN")}/recipes/{recipes.id}'
+        return Response({'short-link': short_link}, status=status.HTTP_200_OK)
 
 
 class TagsViewSet(viewsets.ModelViewSet):
     """Вьюсет для тегов."""
+
     queryset = Tags.objects.all()
     serializer_class = TagsSerializer
     permission_classes = (IsUserorAdmin,)
-    http_method_names = ['get', 'post']
+    http_method_names = ('get', 'post')
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -206,7 +193,7 @@ class TagsViewSet(viewsets.ModelViewSet):
         allowed_fields = {'name', 'slug'}
         if request.data.keys() - allowed_fields != {'csrfmiddlewaretoken'}:
             return Response(
-                {'detail': 'Method not allowed'},
+                'Method not allowed',
                 status=status.HTTP_405_METHOD_NOT_ALLOWED
             )
 

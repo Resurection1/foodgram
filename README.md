@@ -58,7 +58,7 @@ sudo docker compose exec backend python manage.py collectstatic --noinput
 ```
 **_Наполнить базу данных содержимым из файла ingredients.json:_**
 ```
-sudo docker compose exec backend python manage.py loaddata ingredients.json
+sudo docker compose exec backend python manage.py formatted_ingredients.json
 ```
 **_Создать суперпользователя:_**
 ```

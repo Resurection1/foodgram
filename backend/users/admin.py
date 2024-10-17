@@ -1,13 +1,14 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from users.models import (
-    MyUser,
+    User,
     Subscription
 )
 
 
-@admin.register(MyUser)
-class MyUserAdmin(admin.ModelAdmin):
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
     """Класс настройки раздела пользователи."""
 
     list_display = (

@@ -3,13 +3,13 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from api.constants import INCORRECT_PASSWORD
-from api.pagination import CastomPagePagination
-from api.permissins import (
+from recipes.constants import INCORRECT_PASSWORD
+from recipes.pagination import CastomPagePagination
+from recipes.permissins import (
     IsUserorAdmin,
 )
-from api.serializers import SubscriptionSerializer
-from users.models import MyUser, Subscription
+from recipes.serializers import SubscriptionSerializer
+from users.models import User, Subscription
 from users.serializers import (
     AvatarSerializer,
     CustomUserCreateSerializer,
@@ -19,16 +19,18 @@ from users.serializers import (
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = MyUser.objects.all().order_by('id')
+    """Вьюсет для модели User."""
+
+    queryset = User.objects.order_by('id')
     permission_classes = (IsUserorAdmin, )
     pagination_class = CastomPagePagination
     filter_backends = (filters.SearchFilter, )
-    filterset_fields = ('id')
+    filterset_fields = ('id',)
     search_fields = ('id', )
     lookup_field = 'id'
-    http_method_names = [
+    http_method_names = (
         'get', 'patch', 'post', 'delete', 'put',
-    ]
+    )
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -36,7 +38,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
 
     @action(
-        methods=['post'],
+        methods=('post',),
         detail=False,
         url_path='set_password',
         permission_classes=(permissions.IsAuthenticated, )
@@ -45,54 +47,52 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         serializer = PasswordSerializer(data=request.data)
 
-        if serializer.is_valid():
-            if not user.check_password(
-                serializer.validated_data['current_password']
-            ):
-                return Response(
-                    {"current_password": INCORRECT_PASSWORD},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if not user.check_password(
+            serializer.validated_data['current_password']
+        ):
+            return Response(
+                {'current_password': INCORRECT_PASSWORD},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        methods=['get', 'patch'],
+        methods=('get', 'patch'),
         detail=False,
         url_path='me',
         permission_classes=(permissions.IsAuthenticated, )
     )
     def get_patch_me(self, request):
-        user = get_object_or_404(MyUser, username=self.request.user)
         if request.method == 'GET':
-            serializer = UserSerializer(user)
+            serializer = UserSerializer(request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer = UserSerializer(
+            request.user,
+            data=request.data,
+            partial=True
+        )
         serializer.is_valid(raise_exception=True)
-        serializer.save(role=user.role)
+        serializer.save(role=request.user.role)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
-        methods=['put', 'delete'],
+        methods=('put', 'delete'),
         detail=False,
         url_path='me/avatar',
         permission_classes=(permissions.IsAuthenticated, )
     )
     def put_avatar(self, request):
-        user = get_object_or_404(MyUser, username=request.user.username)
-
-        if request.method == 'PUT':
-            if 'avatar' not in request.data:
-                return Response(
-                    "Обязательное поле аватара",
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
+        user = get_object_or_404(User, username=request.user.username)
         serializer = AvatarSerializer(user, data=request.data, partial=True)
 
         if request.method == 'PUT':
@@ -117,24 +117,27 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=False,
-        methods=("get",),
+        methods=('get',),
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscriptions(self, request):
         """Список авторов, на которых подписан пользователь."""
-
         user = self.request.user
         queryset = user.follower.all()
         pages = self.paginate_queryset(queryset)
         serializer = SubscriptionSerializer(
-            pages, many=True, context={"request": request}
+            pages, many=True, context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
 
-    @action(detail=True, methods=("post", "delete"))
+    @action(
+        detail=True,
+        methods=('post', 'delete'),
+        permission_classes=(permissions.IsAuthenticated,),
+    )
     def subscribe(self, request, id=None):
         user = self.request.user
-        author = get_object_or_404(MyUser, pk=id)
+        author = get_object_or_404(User, pk=id)
 
         if user == author:
             return Response(
@@ -142,16 +145,10 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        elif not user.is_authenticated:
-            return Response(
-                'Необходимо зарегистрироваться',
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        if self.request.method == "POST":
+        if self.request.method == 'POST':
             if Subscription.objects.filter(user=user, author=author).exists():
                 return Response(
-                    "Подписка уже существует.",
+                    'Подписка уже существует.',
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -161,17 +158,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 subscription, context={"request": request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        elif self.request.method == "DELETE":
+        elif self.request.method == 'DELETE':
             if not Subscription.objects.filter(
                     user=user, author=author).exists():
                 return Response(
-                    "Вы не подписаны",
+                    'Вы не подписаны',
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-            subscription = get_object_or_404(
-                Subscription, user=user, author=author)
-            subscription.delete()
+            Subscription.objects.filter(user=user, author=author).exists()
             return Response(status=status.HTTP_204_NO_CONTENT)
-
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

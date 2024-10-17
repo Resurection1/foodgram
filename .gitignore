@@ -1,3 +1,5 @@
+data/formatted_json.py
+
 frontend/node_modules
 infra/frontend/build
 .env
