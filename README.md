@@ -39,9 +39,7 @@ scp docker-compose.yml nginx.conf username@IP:/home/username/
     USER                           # имя пользователя от сервера
     SSH_KEY                        # содержимое приватного SSH-ключа (cat ~/.ssh/id_rsa)
     SSH_PASSPHRASE                 # пароль для SSH-ключа
-    ADMIN                          # Логин/начало email(а) для создания администратора
-    ADMIN_PASSWORD                 # Пароль для админа
-
+    
     TELEGRAM_TO                    # ID вашего телеграм-аккаунта (можно узнать у @userinfobot, команда /start)
     TELEGRAM_TOKEN                 # токен вашего бота (получить токен можно у @BotFather, команда /token, имя бота)
 ```
