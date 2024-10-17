@@ -63,7 +63,7 @@ sudo docker compose -f docker-compose.production.yml exec backend python manage.
 ```
 **_Создать суперпользователя:_**
 ```
-sudo docker compose exec backend python manage.py createsuperuser
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py createsuperuser
 ```
 **_Для остановки контейнеров Docker:_**
 ```
