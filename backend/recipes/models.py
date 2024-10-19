@@ -1,5 +1,6 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from recipes.constants import (
     INGREDIENTS_MAX_LENGTH_NAME,
@@ -37,21 +38,18 @@ class Tags(models.Model):
 class Ingredients(models.Model):
     """Класс для модели ингридиенты."""
 
-    KG = 'кг'
-    GRAM = 'г'
-    ML = 'мл'
-    CHOICES = [
-        ('кг', KG),
-        ('г', GRAM),
-        ('мл', ML),
-    ]
+    class Unit(models.TextChoices):
+        KG = 'kg', _('кг'),
+        GRAM = 'g', _('г'),
+        ML = 'ml', _('мл'),
+
     name = models.CharField(
         max_length=INGREDIENTS_MAX_LENGTH_NAME,
         verbose_name='Название',
     )
     measurement_unit = models.CharField(
         max_length=MAX_LENGTH_UNIT_NAME,
-        choices=CHOICES,
+        choices=Unit.choices,
         verbose_name='Вес',
     )
 
@@ -157,7 +155,7 @@ class IngredientsRecipes(models.Model):
         unique_together = ('recipes', 'ingredient')
 
     def __str__(self):
-        return f"{self.ingredient.name} в {self.recipes.name} - {self.amount}"
+        return f'{self.ingredient.name} в {self.recipes.name} - {self.amount}'
 
 
 class ShoppingCart(models.Model):

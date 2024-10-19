@@ -1,7 +1,7 @@
 from django_filters import ModelMultipleChoiceFilter
 from django_filters import rest_framework as filters
 
-from recipes.models import Recipes, Tags
+from recipes.models import Ingredients, Recipes, Tags
 from users.models import User
 
 
@@ -31,3 +31,11 @@ class RecipeFilter(filters.FilterSet):
         if value and self.request.user.is_authenticated:
             return queryset.filter(shopping_list__author=self.request.user)
         return queryset
+
+
+class IngredientsFilter(filters.FilterSet):
+    name = filters.CharFilter(field_name='name', lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredients
+        fields = ['name']

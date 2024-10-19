@@ -1,6 +1,7 @@
 import os
 
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from dotenv import load_dotenv
@@ -9,14 +10,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from recipes.download_shopping_cart import shopping_list_file
-from recipes.filters import RecipeFilter
+from recipes.filters import IngredientsFilter, RecipeFilter
 from recipes.models import (
+    Favorite,
     Ingredients,
     IngredientsRecipes,
     Recipes,
     ShoppingCart,
     Tags,
-    Favorite,
 )
 from recipes.pagination import CastomPagePagination
 from recipes.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
@@ -39,24 +40,34 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredients.objects.all()
     serializer_class = IngredientsSerializer
     permission_classes = (IsUserorAdmin,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientsFilter
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        search_name = request.query_params.get('name', None)
-        if search_name:
-            queryset = queryset.filter(name__istartswith=search_name)
+        queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
     """Вьюсет для рецептов."""
-
-    queryset = Recipes.objects.all()
     permission_classes = (IsAdminAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     pagination_class = CastomPagePagination
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Recipes.objects.all()
+
+        if user.is_authenticated:
+            queryset = queryset.annotate(
+                is_favorited=Exists(Favorite.objects.filter(
+                    user=user, recipes=OuterRef('pk'))),
+                is_in_shopping_cart=Exists(ShoppingCart.objects.filter(
+                    author=user, recipes=OuterRef('pk')))
+            )
+        return queryset
 
     def get_serializer_class(self):
         if self.action in ('create', 'partial_update'):
@@ -131,19 +142,18 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == 'DELETE':
-            try:
-                shopping_cart_item = ShoppingCart.objects.get(
-                    author=user, recipes=recipes)
-                shopping_cart_item.delete()
-                return Response(
-                    'Рецепт успешно удалён из списка покупок.',
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            except ShoppingCart.DoesNotExist:
+            shopping_cart_item = ShoppingCart.objects.filter(
+                author=user, recipes=recipes).delete()
+            if not shopping_cart_item[1]:
                 return Response(
                     'Рецепт не найден в корзине.',
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
+            return Response(
+                'Рецепт успешно удалён из списка покупок.',
+                status=status.HTTP_204_NO_CONTENT
+            )
 
     @action(detail=False,
             methods=('get',),
@@ -159,7 +169,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
             total_amount=Sum('amount')
         )
 
-        return shopping_list_file(ingredients)
+        file_name = 'shopping_list.txt'
+        content_type = 'text/plain,charset=utf8'
+        response = HttpResponse(
+            shopping_list_file(ingredients), content_type=content_type
+        )
+        response['Content-Disposition'] = f'attachment; filename={file_name}'
+        return response
 
     @action(
         detail=True,
@@ -180,24 +196,4 @@ class TagsViewSet(viewsets.ModelViewSet):
     queryset = Tags.objects.all()
     serializer_class = TagsSerializer
     permission_classes = (IsUserorAdmin,)
-    http_method_names = ('get', 'post')
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def create(self, request, *args, **kwargs):
-        self.check_permissions(request)
-
-        allowed_fields = {'name', 'slug'}
-        if request.data.keys() - allowed_fields != {'csrfmiddlewaretoken'}:
-            return Response(
-                'Method not allowed',
-                status=status.HTTP_405_METHOD_NOT_ALLOWED
-            )
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    http_method_names = ('get',)

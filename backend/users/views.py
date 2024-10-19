@@ -1,8 +1,13 @@
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.serializers import (
+    CustomUserCreateSerializer,
+    PasswordSerializer,
+)
 from recipes.constants import INCORRECT_PASSWORD
 from recipes.pagination import CastomPagePagination
 from recipes.permissins import (
@@ -12,8 +17,6 @@ from recipes.serializers import SubscriptionSerializer
 from users.models import User, Subscription
 from users.serializers import (
     AvatarSerializer,
-    CustomUserCreateSerializer,
-    PasswordSerializer,
     UserSerializer,
 )
 
@@ -123,7 +126,9 @@ class UserViewSet(viewsets.ModelViewSet):
     def subscriptions(self, request):
         """Список авторов, на которых подписан пользователь."""
         user = self.request.user
-        queryset = user.follower.all()
+        queryset = user.follower.annotate(
+            recipes_count=Count('author__recipes')
+        )
         pages = self.paginate_queryset(queryset)
         serializer = SubscriptionSerializer(
             pages, many=True, context={'request': request}
@@ -159,11 +164,12 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif self.request.method == 'DELETE':
-            if not Subscription.objects.filter(
-                    user=user, author=author).exists():
+            subscribe = Subscription.objects.filter(
+                user=user, author=author
+            ).delete()
+            if not subscribe[1]:
                 return Response(
                     'Вы не подписаны',
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            Subscription.objects.filter(user=user, author=author).exists()
             return Response(status=status.HTTP_204_NO_CONTENT)
