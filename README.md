@@ -4,8 +4,14 @@
 
 Получение admin доступа на сайте
 ```
+для входа на сайт
+mail - admin@mail.ru
+password - admin
+------------------
+для входа в админку
 login - admin
 password - admin
+------------------
 https://foodgramm.sytes.net/admin/
 ```
 IP addres и domain
