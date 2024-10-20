@@ -5,8 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from api.serializers import (
+    AvatarSerializer,
     CustomUserCreateSerializer,
     PasswordSerializer,
+    UserSerializer,
 )
 from recipes.constants import INCORRECT_PASSWORD
 from recipes.pagination import CastomPagePagination
@@ -15,10 +17,6 @@ from recipes.permissins import (
 )
 from recipes.serializers import SubscriptionSerializer
 from users.models import User, Subscription
-from users.serializers import (
-    AvatarSerializer,
-    UserSerializer,
-)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -36,6 +34,7 @@ class UserViewSet(viewsets.ModelViewSet):
     )
 
     def get_serializer_class(self):
+        """Условие для выбора сериализатора."""
         if self.action == 'create':
             return CustomUserCreateSerializer
         return UserSerializer
@@ -47,6 +46,7 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated, )
     )
     def set_password(self, request):
+        """Смена пароля."""
         user = request.user
         serializer = PasswordSerializer(data=request.data)
 
@@ -75,6 +75,7 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated, )
     )
     def get_patch_me(self, request):
+        """Получение или изменения страницы me."""
         if request.method == 'GET':
             serializer = UserSerializer(request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -95,6 +96,7 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated, )
     )
     def put_avatar(self, request):
+        """Изменение аватара."""
         user = get_object_or_404(User, username=request.user.username)
         serializer = AvatarSerializer(user, data=request.data, partial=True)
 
@@ -141,16 +143,15 @@ class UserViewSet(viewsets.ModelViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscribe(self, request, id=None):
+        """Подписка."""
         user = self.request.user
-        author = get_object_or_404(User, pk=id)
-
-        if user == author:
-            return Response(
-                'Нельзя подписаться самому на себя)',
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         if self.request.method == 'POST':
+            author = get_object_or_404(User, pk=id)
+            if user == author:
+                return Response(
+                    'Нельзя подписаться самому на себя)',
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             if Subscription.objects.filter(user=user, author=author).exists():
                 return Response(
                     'Подписка уже существует.',
@@ -164,10 +165,10 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif self.request.method == 'DELETE':
-            subscribe = Subscription.objects.filter(
-                user=user, author=author
+            deleted_count, _ = Subscription.objects.filter(
+                user=user, author=id
             ).delete()
-            if not subscribe[1]:
+            if deleted_count == 0:
                 return Response(
                     'Вы не подписаны',
                     status=status.HTTP_400_BAD_REQUEST,

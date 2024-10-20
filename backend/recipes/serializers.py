@@ -3,7 +3,9 @@ from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers
 
+from api.serializers import UserSerializer
 from recipes.models import (
+    Favorite,
     Ingredients,
     IngredientsRecipes,
     Recipes,
@@ -12,7 +14,13 @@ from recipes.models import (
 )
 from recipes.pagination import CastomPagePagination
 from users.models import Subscription
-from users.serializers import UserSerializer
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    """Сереализатор для рцепептов в избранные."""
+    class Meta:
+        model = Favorite
+        fields = ('user', 'recipes',)
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):

@@ -1,5 +1,3 @@
-
-
 def shopping_list_file(ingredients):
     """Функция создания файла.txt"""
     lines = []

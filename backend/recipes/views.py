@@ -22,6 +22,7 @@ from recipes.models import (
 from recipes.pagination import CastomPagePagination
 from recipes.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
 from recipes.serializers import (
+    FavoriteSerializer,
     IngredientsSerializer,
     TagsSerializer,
     RecipeSerializer,
@@ -39,24 +40,20 @@ class IngredientsViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredients.objects.all()
     serializer_class = IngredientsSerializer
-    permission_classes = (IsUserorAdmin,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientsFilter
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
     """Вьюсет для рецептов."""
+
     permission_classes = (IsAdminAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     pagination_class = CastomPagePagination
 
     def get_queryset(self):
+        """Добавление is_favorited и is_in_shopping_cart в get_queryset."""
         user = self.request.user
         queryset = Recipes.objects.all()
 
@@ -70,6 +67,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
+        """Условие для выбора сериализатора."""
         if self.action in ('create', 'partial_update'):
             return RecipeCreateUpdateSerializer
         return RecipeSerializer
@@ -83,20 +81,24 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 f'Нельзя повторно добавить рецепт в {name}',
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        model.objects.create(user=user, recipes=recipes)
-        serializer = ShortRecipeSerializer(recipes)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = FavoriteSerializer(data={'user': user.id, 'recipes': recipes.id})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        short_recipe_serializer = ShortRecipeSerializer(recipes)
+        return Response(short_recipe_serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_relation(self, model, user, pk, name):
         """Удаление рецепта из списка пользователя."""
         recipes = get_object_or_404(Recipes, pk=pk)
-        relation = model.objects.filter(user=user, recipes=recipes)
-        if not relation.exists():
+        deleted_count, _ = model.objects.filter(
+            user=user, recipes=recipes
+        ).delete()
+        if deleted_count == 0:
             return Response(
                 f'Нельзя повторно удалить рецепт из {name}',
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        relation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -120,7 +122,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             methods=('post', 'delete'),
             permission_classes=[permissions.IsAuthenticated])
     def shopping_cart(self, request, **kwargs):
-        """Добавить или удалить  рецепт из списка покупок у пользоватля."""
+        """Добавить или удалить рецепт из списка покупок у пользоватeля."""
         recipes = get_object_or_404(Recipes, id=self.kwargs.get('pk'))
         user = self.request.user
         if request.method == 'POST':
@@ -142,9 +144,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == 'DELETE':
-            shopping_cart_item = ShoppingCart.objects.filter(
+            deleted_count, _ = ShoppingCart.objects.filter(
                 author=user, recipes=recipes).delete()
-            if not shopping_cart_item[1]:
+            if deleted_count == 0:
                 return Response(
                     'Рецепт не найден в корзине.',
                     status=status.HTTP_400_BAD_REQUEST
