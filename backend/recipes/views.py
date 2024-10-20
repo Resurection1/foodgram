@@ -86,7 +86,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-
         recipe_serializer = ShortRecipeSerializer(recipes)
         return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
 
