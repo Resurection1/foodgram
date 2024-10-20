@@ -81,12 +81,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 f'Нельзя повторно добавить рецепт в {name}',
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        serializer = FavoriteSerializer(data={'user': user.id, 'recipes': recipes.id})
+        serializer = FavoriteSerializer(
+            data={'user': user.id, 'recipes': recipes.id}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        short_recipe_serializer = ShortRecipeSerializer(recipes)
-        return Response(short_recipe_serializer.data, status=status.HTTP_201_CREATED)
+        recipe_serializer = ShortRecipeSerializer(recipes)
+        return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_relation(self, model, user, pk, name):
         """Удаление рецепта из списка пользователя."""
