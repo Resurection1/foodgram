@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from recipes.download_shopping_cart import shopping_list_file
-from recipes.filters import IngredientsFilter, RecipeFilter
+from api.filters import IngredientsFilter, RecipeFilter
 from recipes.models import (
     Favorite,
     Ingredients,
@@ -86,14 +86,15 @@ class RecipesViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        recipe_serializer = ShortRecipeSerializer(recipes)
-        return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            ShortRecipeSerializer(recipes).data,
+            status=status.HTTP_201_CREATED
+        )
 
     def delete_relation(self, model, user, pk, name):
         """Удаление рецепта из списка пользователя."""
-        recipes = get_object_or_404(Recipes, pk=pk)
         deleted_count, _ = model.objects.filter(
-            user=user, recipes=recipes
+            user=user, recipes__id=pk
         ).delete()
         if deleted_count == 0:
             return Response(

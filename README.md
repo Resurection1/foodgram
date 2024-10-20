@@ -2,10 +2,23 @@
 
 `Python` `Django` `Django Rest Framework` `Docker` `Gunicorn` `NGINX` `PostgreSQL` `Yandex Cloud` `Continuous Integration` `Continuous Deployment`
 
+Получение admin доступа на сайте
+```
+login - admin
+password - admin
+https://foodgramm.sytes.net/admin/
+```
+IP addres и domain
+```
+domain - https://foodgramm.sytes.net/
+IP - 51.250.30.187
+```
+
+
 # **Foodgram**
 Foodgram, «Продуктовый помощник». Онлайн-сервис и API для него. На этом сервисе пользователи публикуют свои рецепты, подписываются на публикации других пользователей, добавляют понравившиеся рецепты в список «Избранное», а перед походом в магазин могут скачать сводный список продуктов, необходимых для приготовления выбранных блюд.
 
-**_Ссылка на [проект](https://foodgramm.sytes.net/admin/ "Гиперссылка к проекту.")_**
+**_Ссылка на [проект](https://foodgramm.sytes.net/ "Гиперссылка к проекту.")_**
 
 **_Ссылка на [админ-зону](https://foodgramm.sytes.net/admin/ "Гиперссылка к админке.")_**
 
