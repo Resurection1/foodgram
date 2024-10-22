@@ -11,6 +11,8 @@ from rest_framework.response import Response
 
 from recipes.download_shopping_cart import shopping_list_file
 from api.filters import IngredientsFilter, RecipeFilter
+from api.pagination import CastomPagePagination
+from api.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
 from recipes.models import (
     Favorite,
     Ingredients,
@@ -19,8 +21,6 @@ from recipes.models import (
     ShoppingCart,
     Tags,
 )
-from recipes.pagination import CastomPagePagination
-from recipes.permissins import IsAdminAuthorOrReadOnly, IsUserorAdmin
 from recipes.serializers import (
     FavoriteSerializer,
     IngredientsSerializer,
@@ -125,9 +125,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
             permission_classes=[permissions.IsAuthenticated])
     def shopping_cart(self, request, **kwargs):
         """Добавить или удалить рецепт из списка покупок у пользоватeля."""
-        recipes = get_object_or_404(Recipes, id=self.kwargs.get('pk'))
         user = self.request.user
         if request.method == 'POST':
+            recipes = get_object_or_404(Recipes, id=self.kwargs.get('pk'))
             if ShoppingCart.objects.filter(
                 author=user,
                 recipes=recipes
@@ -147,7 +147,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         if request.method == 'DELETE':
             deleted_count, _ = ShoppingCart.objects.filter(
-                author=user, recipes=recipes).delete()
+                author=user, recipes=self.kwargs.get('pk')).delete()
             if deleted_count == 0:
                 return Response(
                     'Рецепт не найден в корзине.',

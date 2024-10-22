@@ -4,6 +4,10 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from api.pagination import CastomPagePagination
+from api.permissins import (
+    IsUserorAdmin,
+)
 from api.serializers import (
     AvatarSerializer,
     CustomUserCreateSerializer,
@@ -11,10 +15,6 @@ from api.serializers import (
     UserSerializer,
 )
 from recipes.constants import INCORRECT_PASSWORD
-from recipes.pagination import CastomPagePagination
-from recipes.permissins import (
-    IsUserorAdmin,
-)
 from recipes.serializers import SubscriptionSerializer
 from users.models import User, Subscription
 

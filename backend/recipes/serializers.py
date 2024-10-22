@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers
 
+from api.pagination import CastomPagePagination
 from api.serializers import UserSerializer
 from recipes.models import (
     Favorite,
@@ -12,7 +13,7 @@ from recipes.models import (
     ShoppingCart,
     Tags,
 )
-from recipes.pagination import CastomPagePagination
+
 from users.models import Subscription
 
 
