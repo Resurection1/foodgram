@@ -86,6 +86,7 @@ class IngredientRecipeAdmin(admin.ModelAdmin):
     list_display_links = ('id', 'recipes',)
     empty_value_display = 'значение отсутствует'
     list_filter = ('recipes',)
+    search_fields = ('recipes__name',)
 
 
 @admin.register(Favorite)
@@ -99,7 +100,7 @@ class FavoriteAdmin(admin.ModelAdmin):
     )
     list_display_links = ('id', 'user',)
     empty_value_display = 'значение отсутствует'
-    search_fields = ('user',)
+    search_fields = ('user__username',)
 
 
 @admin.register(ShoppingCart)
@@ -107,7 +108,9 @@ class ShoppingCartAdmin(admin.ModelAdmin):
     """Класс настройки раздела корзина."""
 
     list_display = (
+        'id',
         'author',
         'recipes'
     )
-    search_fields = ('author',)
+    search_fields = ('author__username',)
+    list_filter = [RecipesAuthorFilters]

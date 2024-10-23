@@ -37,4 +37,4 @@ class SubscriptionAdmin(admin.ModelAdmin):
     )
     list_display_links = ('id', 'user',)
     empty_value_display = 'значение отсутствует'
-    search_fields = ('user',)
+    search_fields = ('user__username',)

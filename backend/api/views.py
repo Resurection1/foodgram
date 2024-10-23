@@ -71,7 +71,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 is_in_shopping_cart=Exists(ShoppingCart.objects.filter(
                     author=user, recipes=OuterRef('pk')))
             )
-        return queryset
+        return queryset.order_by('-pub_date')
 
     def get_serializer_class(self):
         """Условие для выбора сериализатора."""
