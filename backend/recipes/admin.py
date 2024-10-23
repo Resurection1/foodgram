@@ -88,7 +88,6 @@ class IngredientRecipeAdmin(admin.ModelAdmin):
     list_filter = ('recipes',)
 
 
-
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     """Класс настройки раздела избранные."""
