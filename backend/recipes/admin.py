@@ -113,4 +113,5 @@ class ShoppingCartAdmin(admin.ModelAdmin):
         'recipes'
     )
     search_fields = ('author__username',)
+    list_display_links = ('id', 'author',)
     list_filter = [RecipesAuthorFilters]
