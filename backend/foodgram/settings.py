@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig',
     'api.apps.ApiConfig',
-
+    'admin_auto_filters',
 ]
 
 MIDDLEWARE = [

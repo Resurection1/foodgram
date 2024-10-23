@@ -36,7 +36,7 @@ class Tags(models.Model):
 
 
 class Ingredients(models.Model):
-    """Класс для модели ингридиенты."""
+    """Класс для модели ингредиенты."""
 
     class Unit(models.TextChoices):
         KG = 'kg', _('кг'),
@@ -54,8 +54,8 @@ class Ingredients(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Ингридиент'
-        verbose_name_plural = 'Ингридиенты'
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
 
         constraints = (
             models.UniqueConstraint(
@@ -99,7 +99,7 @@ class Recipes(models.Model):
         Ingredients,
         through='IngredientsRecipes',
         related_name='recipes',
-        verbose_name='Ингридиенты'
+        verbose_name='Ингредиенты'
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время готовки',

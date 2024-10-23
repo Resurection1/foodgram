@@ -20,9 +20,9 @@ class UserAdmin(BaseUserAdmin):
         'role',
         'avatar',
     )
+    list_display_links = ('first_name',)
     empty_value_display = 'значение отсутствует'
-    list_filter = ('username',)
-    search_fields = ('first_name', 'last_name', 'username', 'role')
+    search_fields = ('first_name', 'last_name', 'username', 'role', 'email',)
 
 
 @admin.register(Subscription)
@@ -35,6 +35,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
         'author',
 
     )
+    list_display_links = ('id', 'user',)
     empty_value_display = 'значение отсутствует'
-    list_filter = ('user',)
     search_fields = ('user',)

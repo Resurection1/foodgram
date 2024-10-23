@@ -1,4 +1,5 @@
 from django.contrib import admin
+from admin_auto_filters.filters import AutocompleteFilter
 
 from recipes.models import (
     Favorite,
@@ -19,8 +20,8 @@ class TagAdmin(admin.ModelAdmin):
         'name',
         'slug',
     )
+    list_display_links = ('id', 'name',)
     empty_value_display = 'значение отсутствует'
-    list_filter = ('name',)
     search_fields = ('name',)
 
 
@@ -33,14 +34,23 @@ class IngredientAdmin(admin.ModelAdmin):
         'name',
         'measurement_unit',
     )
+    list_display_links = ('id', 'name',)
     empty_value_display = 'значение отсутствует'
-    list_filter = ('name',)
     search_fields = ('name',)
 
 
 class IngredientsInLine(admin.TabularInline):
+    """Класс для создания ингредиентов в рецептах."""
+
     model = Recipes.ingredients.through
     extra = 1
+
+
+class RecipesAuthorFilters(AutocompleteFilter):
+    """Класс фильтров для рецептов в админ панели."""
+
+    title = 'Author'
+    field_name = 'author'
 
 
 @admin.register(Recipes)
@@ -56,9 +66,10 @@ class RecipeAdmin(admin.ModelAdmin):
         'image',
         'pub_date'
     )
+    list_display_links = ('id', 'name',)
     empty_value_display = 'значение отсутствует'
-    list_filter = ('name', 'cooking_time', 'author')
-    search_fields = ('name', 'text')
+    list_filter = (RecipesAuthorFilters, 'cooking_time',)
+    search_fields = ('name',)
     inlines = (IngredientsInLine, )
 
 
@@ -72,9 +83,10 @@ class IngredientRecipeAdmin(admin.ModelAdmin):
         'ingredient',
         'amount',
     )
+    list_display_links = ('id', 'recipes',)
     empty_value_display = 'значение отсутствует'
     list_filter = ('recipes',)
-    search_fields = ('recipes',)
+
 
 
 @admin.register(Favorite)
@@ -86,8 +98,8 @@ class FavoriteAdmin(admin.ModelAdmin):
         'user',
         'recipes',
     )
+    list_display_links = ('id', 'user',)
     empty_value_display = 'значение отсутствует'
-    list_filter = ('user',)
     search_fields = ('user',)
 
 
@@ -99,5 +111,4 @@ class ShoppingCartAdmin(admin.ModelAdmin):
         'author',
         'recipes'
     )
-    list_filter = ('author',)
     search_fields = ('author',)
